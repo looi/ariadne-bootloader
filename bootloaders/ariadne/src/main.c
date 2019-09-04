@@ -48,7 +48,7 @@ int main(void)
 	 * eternal reset loop of doom and despair */
     ch = MCUSR;
     MCUSR = 0;
-    if(ch & (_BV(WDRF) | _BV(BORF) | _BV(PORF))) {
+    if(ch & (/*_BV(WDRF) |*/ _BV(BORF) | _BV(PORF))) {
         if(eeprom_read_byte(EEPROM_IMG_STAT) == EEPROM_IMG_OK_VALUE) {
             wdt_disable();
             appStart();
