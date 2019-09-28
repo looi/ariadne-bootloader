@@ -12,6 +12,7 @@
 #include <avr/wdt.h>
 #include <util/delay.h>
 
+#include "Caterina.h"
 #include "util.h"
 #include "spi.h"
 #include "net.h"
@@ -44,32 +45,11 @@ int main(void)
     SP = RAMEND;  // This is done by hardware reset
 #endif
 
-    /* Disable the watchdog timer to prevent
-	 * eternal reset loop of doom and despair */
-    ch = MCUSR;
-    MCUSR = 0;
-    if(ch & (_BV(WDRF) | _BV(BORF) | _BV(PORF))) {
-        if(eeprom_read_byte(EEPROM_IMG_STAT) == EEPROM_IMG_OK_VALUE) {
-            wdt_disable();
-            appStart();
-        }
-    }
-	wdt_enable(WDTO_8S);
+	// This may start the user program.
+	caterinaInit();
 
 	// Wait to ensure startup of W5100
 	_delay_ms(200);
-
-
-
-	// Prescaler=0, ClkIO Period = 62,5ns
-	// TCCR1B values:
-	// 0x01 -> ClkIO/1 -> 62,5ns period, 4ms max
-	// 0x02 -> ClkIO/8 -> 500ns period, 32ms max
-	// 0X03 -> ClkIO/64 -> 4us period, 256ms max
-	// 0x04 -> ClkIO/256 -> 16us period, 1024ms max
-	// 0x05 -> ClkIO/1024 -> 64us period, 4096ms max
-	// Set up Timer 1 as timekeeper for LED flashing
-	TCCR1B = _BV(CS12); // Same thing as TCCR1B = 0x04;
 
 	/* Write version information in the EEPROM */
 	if(eeprom_read_byte(EEPROM_MAJVER) != ARIADNE_MAJVER)
@@ -77,14 +57,18 @@ int main(void)
 	if(eeprom_read_byte(EEPROM_MINVER) != ARIADNE_MINVER)
 		eeprom_write_byte(EEPROM_MINVER, ARIADNE_MINVER);
 
-	/* Initialize UART communication */
-	serialInit();
 	DBG_MAIN(tracePGMlnMain(mDebugMain_TITLE);)
 
 	DBG_BTN(
 		DBG_MAIN_EX(tracePGMlnMain(mDebugMain_BTN);)
 		buttonInit();
 	)
+
+	/* Setup hardware required for the Caterina bootloader */
+	SetupHardware();
+
+	/* Enable global interrupts so that the USB stack can function */
+	sei();
 
 	/* Initalize SPI communication */
 	DBG_MAIN_EX(tracePGMlnMain(mDebugMain_SPI);)
@@ -105,26 +89,27 @@ int main(void)
 	announceInit();
 #endif
 
-	serialFlashing = FALSE;
 	tftpFlashing = FALSE;
+	usbFlashing = FALSE;
 
 	for(;;) {
-		// If there is no serial flashing under way, poll tftp
-		if(!serialFlashing)
+		// If there is no usb flashing under way, poll tftp
+		if(!usbFlashing)
 			// If tftp recieved a FINAL_ACK, break
 			if(tftpPoll() == 0) break;
 
-		// If there is no tftp flashing, poll serial
-		if(!tftpFlashing)
-			// If flashing is done exit
-			if(serialPoll() == 0) break;
+		// If there is no tftp flashing, poll usb
+		if(!tftpFlashing) {
+			CDC_Task();
+			USB_USBTask();
+		}
 
 		/* As explained above this goes out */
 #if defined(ANNOUNCE)
 		announcePoll();
 #endif
 
-        if(timedOut()) {
+        if(caterinaTimedOut()) {
 			if(eeprom_read_byte(EEPROM_IMG_STAT) == EEPROM_IMG_OK_VALUE) break;
 
 			//TODO: determine the conditions for reseting server OR reseting socket
@@ -134,7 +119,7 @@ int main(void)
 				// Reinitialize TFTP
 				tftpInit();
 				// Reset the timeout counter
-				resetTick();
+				//resetTick();
 				// Unset tftp flag
 				tftpFlashing = FALSE;
 			}
@@ -142,13 +127,16 @@ int main(void)
 		wdt_reset();
 		/* Blink the notification led */
 		wdt_reset(); //Required so it doesn`t hang.
-		updateLed();
+		//updateLed();
 	}
 
-	/* Exit to user application */
     wdt_disable();
-    appStart();
-	//return(0); /* never reached */
+
+	/* Disconnect from the host - USB interface will be reset later along with the AVR */
+	USB_Detach();
+
+	/* Jump to beginning of application space to run the sketch - do not reset */   
+	StartSketch();
 }
 
 void appStart(void) {

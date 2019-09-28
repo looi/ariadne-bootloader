@@ -23,6 +23,9 @@
 # program name should not be changed...
 PROGRAM    = ariadne
 
+# Path to the LUFA library (for Caterina)
+LUFA_PATH = ../../../../lufa-LUFA-111009
+
 # The default behavior is to build using tools that are in the users
 # current path variables, but we can also build using an installed
 # Arduino user IDE setup, or the Arduino source tree.
@@ -112,7 +115,7 @@ STK500-1 = $(STK500) -e -d$(MCU_TARGET) -pf -vf -if$(PROGRAM)_$(TARGET).hex \
 	   -lFF -LFF -f$(HFUSE)$(LFUSE) -EF8 -ms -q -cUSB -I200kHz -s -wt
 STK500-2 = $(STK500) -d$(MCU_TARGET) -ms -q -lCF -LCF -cUSB -I200kHz -s -wt
 
-OBJ      = main.o spi.o net.o tftp.o validate.o debug.o watchdog.o serial.o util.o announce.o optiboot.o stk500boot.o
+OBJ      = main.o spi.o net.o tftp.o validate.o debug.o watchdog.o announce.o Caterina.o Descriptors.o
 OPTIMIZE = -Os -flto -fuse-linker-plugin -fno-inline-small-functions -fno-split-wide-types -mno-interrupts -mrelax
 OPTIMIZE += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -fno-jump-tables -std=gnu99 #-save-temps
 
@@ -123,8 +126,8 @@ CC       = $(GCCROOT)avr-gcc
 
 # Override is only needed by avr-lib build system.
 
-override CFLAGS  = -g -Wall -Wextra -Wstrict-prototypes $(OPTIMIZE) -mmcu=$(MCU_TARGET) -DF_CPU=$(AVR_FREQ) $(DEFS)
-override LDFLAGS = $(LDSECTIONS) -Wl,--relax -Wl,--gc-sections -flto -fuse-linker-plugin
+override CFLAGS  = -g -Wall -Wextra -Wstrict-prototypes $(OPTIMIZE) -mmcu=$(MCU_TARGET) -DF_CPU=$(AVR_FREQ) -DF_USB=$(AVR_FREQ) $(DEFS)
+override LDFLAGS = $(LDSECTIONS) -Wl,--relax -Wl,--gc-sections -flto -fuse-linker-plugin $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/Device_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/Endpoint_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/Host_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/Pipe_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/USBInterrupt_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/EndpointStream_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/AVR8/PipeStream_AVR8.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/ConfigDescriptor.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/DeviceStandardReq.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/Events.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/HostStandardReq.o $(LUFA_PATH)/LUFA/Drivers/USB/Core/USBTask.o $(LUFA_PATH)/LUFA/Drivers/USB/Class/Common/HIDParser.o
 
 OBJCOPY = $(GCCROOT)avr-objcopy
 OBJDUMP = $(call fixpath,$(GCCROOT)avr-objdump)
@@ -473,7 +476,7 @@ atmega328_ethernet_isp: isp
 atmega32u4_w5100: EXT_OBJ = optiboot.o
 atmega32u4_w5100: TARGET = atmega32u4_w5100
 atmega32u4_w5100: MCU_TARGET = atmega32u4
-atmega32u4_w5100: CFLAGS += '-D__WIZ_W5100__' '-DBAUD_RATE=115200'
+atmega32u4_w5100: CFLAGS += '-D__WIZ_W5100__' '-DBAUD_RATE=115200' '-DBOOT_START_ADDR=0x7000UL' '-DDEVICE_VID=0x2341UL' '-DDEVICE_PID=0x0036UL' '-DUSB_DEVICE_ONLY' '-DDEVICE_STATE_AS_GPIOR=0' '-DORDERED_EP_CONFIG' '-DFIXED_CONTROL_ENDPOINT_SIZE=8' '-DFIXED_NUM_CONFIGURATIONS=1' '-DUSE_RAM_DESCRIPTORS' '-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"' '-DNO_INTERNAL_SERIAL' '-DNO_DEVICE_SELF_POWER' '-DNO_DEVICE_REMOTE_WAKEUP' '-DNO_SOF_EVENTS' '-DNO_LOCK_BYTE_WRITE_SUPPORT' '-I$(LUFA_PATH)'
 atmega32u4_w5100: AVR_FREQ = 16000000L
 atmega32u4_w5100: LDSECTIONS  = -Wl,--section-start=.text=0x7000 #-Wl,--section-start=.version=0x7ffe
 atmega32u4_w5100: $(PROGRAM)_atmega32u4_w5100.hex
@@ -490,7 +493,7 @@ atmega32u4_w5100_isp: isp
 atmega32u4_w5200: EXT_OBJ = optiboot.o
 atmega32u4_w5200: TARGET = atmega32u4_w5200
 atmega32u4_w5200: MCU_TARGET = atmega32u4
-atmega32u4_w5200: CFLAGS += '-D__WIZ_W5200__' '-DBAUD_RATE=115200'
+atmega32u4_w5200: CFLAGS += '-D__WIZ_W5200__' '-DBAUD_RATE=115200' '-DBOOT_START_ADDR=0x7000UL' '-DDEVICE_VID=0x2341UL' '-DDEVICE_PID=0x0036UL' '-DUSB_DEVICE_ONLY' '-DDEVICE_STATE_AS_GPIOR=0' '-DORDERED_EP_CONFIG' '-DFIXED_CONTROL_ENDPOINT_SIZE=8' '-DFIXED_NUM_CONFIGURATIONS=1' '-DUSE_RAM_DESCRIPTORS' '-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"' '-DNO_INTERNAL_SERIAL' '-DNO_DEVICE_SELF_POWER' '-DNO_DEVICE_REMOTE_WAKEUP' '-DNO_SOF_EVENTS' '-DNO_LOCK_BYTE_WRITE_SUPPORT' '-I$(LUFA_PATH)'
 atmega32u4_w5200: AVR_FREQ = 16000000L
 atmega32u4_w5200: LDSECTIONS  = -Wl,--section-start=.text=0x7000 #-Wl,--section-start=.version=0x7ffe
 atmega32u4_w5200: $(PROGRAM)_atmega32u4_w5200.hex
@@ -507,7 +510,7 @@ atmega32u4_w5200_isp: isp
 atmega32u4_w5500: EXT_OBJ = optiboot.o
 atmega32u4_w5500: TARGET = atmega32u4_w5500
 atmega32u4_w5500: MCU_TARGET = atmega32u4
-atmega32u4_w5500: CFLAGS += '-D__WIZ_W5500__' '-DBAUD_RATE=115200'
+atmega32u4_w5500: CFLAGS += '-D__WIZ_W5500__' '-DBAUD_RATE=115200' '-DBOOT_START_ADDR=0x7000UL' '-DDEVICE_VID=0x2341UL' '-DDEVICE_PID=0x0036UL' '-DUSB_DEVICE_ONLY' '-DDEVICE_STATE_AS_GPIOR=0' '-DORDERED_EP_CONFIG' '-DFIXED_CONTROL_ENDPOINT_SIZE=8' '-DFIXED_NUM_CONFIGURATIONS=1' '-DUSE_RAM_DESCRIPTORS' '-DUSE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENABLED | USB_OPT_AUTO_PLL)"' '-DNO_INTERNAL_SERIAL' '-DNO_DEVICE_SELF_POWER' '-DNO_DEVICE_REMOTE_WAKEUP' '-DNO_SOF_EVENTS' '-DNO_LOCK_BYTE_WRITE_SUPPORT' '-I$(LUFA_PATH)'
 atmega32u4_w5500: AVR_FREQ = 16000000L
 atmega32u4_w5500: LDSECTIONS  = -Wl,--section-start=.text=0x7000 #-Wl,--section-start=.version=0x7ffe
 atmega32u4_w5500: $(PROGRAM)_atmega32u4_w5500.hex

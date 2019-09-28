@@ -20,6 +20,7 @@
 #include "serial.h"
 #include "debug.h"
 #include "debug_tftp.h"
+#include "Caterina.h"
 
 /** Opcode?: tftp operation is unsupported. The bootloader only supports 'put' */
 #define TFTP_OPCODE_ERROR_LEN 12
@@ -193,7 +194,7 @@ static uint8_t processPacket(void)
 
 		case TFTP_OPCODE_WRQ: // Write request
 			// Valid WRQ -> reset timer
-			resetTick();
+			caterinaResetTimeout();
 
 			DBG_TFTP(tracePGMlnTftp(mDebugTftp_OPWRQ);)
 
@@ -221,7 +222,7 @@ static uint8_t processPacket(void)
 
 		case TFTP_OPCODE_DATA:
 			// Valid Data Packet -> reset timer
-			resetTick();
+			caterinaResetTimeout();
 
 			DBG_TFTP(tracePGMlnTftp(mDebugTftp_OPDATA);)
 
